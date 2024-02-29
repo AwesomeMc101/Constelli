@@ -31,3 +31,24 @@ CFunctions:
 print, 1 arg, prints top of stack
 strlen, 1 arg, returns length of string
 pow, 2 arg, arg1 ^ arg2
+
+**Defining Vars**
+- var foo = 5;
+
+**Calling Vars**
+print([foo]); 
+prints 5^
+- Must have [] around varname
+
+**Defining Functions**
+entry 'functionName';
+print();
+leave;
+
+- print(); will print the value at the top of the stack
+
+**Calling Functions**
+goto 'functionName' 45; 
+Now, 45 will be at the top of the stack and will be printed.
+
+
