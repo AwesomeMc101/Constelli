@@ -3,9 +3,9 @@
 
 
 std::vector<std::string> reserved_calls{"print","heap_push","strlen","pow"};
-std::vector<char> reserved_tokens{ '(',')','+','-','"','-','/','%',';','\'', '=', '>','<','*' };
-std::vector<char> splitter_tokens{ ',' };// these tokens are designed literally just to split things up, like function args. 
-std::vector<std::string> reserved_keywords{ "if", "var","goto","jump","entry"};
+std::vector<char> reserved_tokens{ '(',')','+','-','"','-','/','%',';','\'', '=', '>','<','*','[',']'};
+std::vector<char> splitter_tokens{ ',',' '};// these tokens are designed literally just to split things up, like function args. 
+std::vector<std::string> reserved_keywords{ "if", "var","goto","jump","entry","leave"};
 
 
 std::vector<std::string> Parser::parse_line(const char* line)
@@ -14,11 +14,11 @@ std::vector<std::string> Parser::parse_line(const char* line)
 
 	std::vector<std::string> tokenized_values;
 	
-	std::cout << "Parsing: " << line << "\n";
+	//std::cout << "Parsing: " << line << "\n";
 	char buffer[2000]{""};
 	for (int i = 0; i < strlen(line); i++)
 	{
-		std::cout << "L: " << line[i] << "\n";
+		//std::cout << "L: " << line[i] << "\n";
 		bool wrote = false;
 		for (char c : reserved_tokens)
 		{
@@ -60,7 +60,7 @@ std::vector<std::string> Parser::parse_line(const char* line)
 	for (int i = 0; i < tokenized_values.size(); i++)
 	{
 		std::string val = tokenized_values[i];
-		std::cout << "Tok Val: " << val << " and strlen " << (val).length() << "\n";
+		//std::cout << "Tok Val: " << val << " and strlen " << (val).length() << "\n";
 		//std::cout << "Tok[0]: " << val[0] << "\n";
 	}
 
@@ -75,14 +75,18 @@ INST Parser::keyword_decode(std::string key)
 	if (key == "jump") { return OP_JMP; }
 	if (key == "goto") { return OP_JMP; }
 	if (key == "entry") { return OP_JMPLOC; }
+	if (key == "leave") { return OP_JUMPLOCEND; }
 }
 
 INST Parser::token_decode(char token)
 {
-	std::cout << "Decode: " << token << "\n";
-	if (token == ';') { printf("endline"); return OP_ENDLINE; }
+	//std::cout << "Decode: " << token << "\n";
+	if (token == ';') {  return OP_ENDLINE; }
 	if (token == '(') { return OP_OPENPARA; }
 	if (token == ')') { return OP_CLOSEPARA; }
+
+	if (token == '[') { return OP_OPENVAR; }
+	if (token == ']') { return OP_CLOSEVAR; }
 
 	if (token == '\'') { return OP_STRING; }
 	if (token == '"') { return OP_STRING; }
@@ -142,6 +146,9 @@ Instruction_Set* Parser::new_inst_set(const char* line)
 	/* What is creating_string? Because the parser separates the " from a string, the first " will initiate the 'creating_string'
 	variable, which means we will halt production of new instructions until we get another string call.*/
 
+	bool creating_var = false;
+	std::string var_creation_holster = ""; //SAME CONCEPT
+
 	for (int i = 0; i < parsed_data.size(); i++)
 	{
 		if (!parsed_data.size()) { continue; }
@@ -159,6 +166,22 @@ Instruction_Set* Parser::new_inst_set(const char* line)
 			else
 			{
 				string_creation_holster.append(parsed_data[i]);
+				continue;
+			}
+		}
+
+		if (creating_var)
+		{
+			if (Parser::token_decode(parsed_data[i][0]) == OP_CLOSEVAR)
+			{
+				creating_var = false;
+				in_St->instructions.push_back(std::make_pair(OP_MEMREF, var_creation_holster));
+				var_creation_holster.clear();
+				continue;
+			}
+			else
+			{
+				var_creation_holster.append(parsed_data[i]);
 				continue;
 			}
 		}
@@ -195,6 +218,12 @@ Instruction_Set* Parser::new_inst_set(const char* line)
 				if (Parser::token_decode(parsed_data[i][0]) == OP_STRING)
 				{
 					creating_string = true;
+					done = true;
+					continue;
+				}
+				else if (Parser::token_decode(parsed_data[i][0]) == OP_OPENVAR)
+				{
+					creating_var = true;
 					done = true;
 					continue;
 				}
