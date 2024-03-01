@@ -1,18 +1,18 @@
 # Constelli
 Interpreted programming language. A much better version of Cosmolti, with smarter parsing and execution. 
 
-## Getting Started
+# Getting Started
 
-### Dependencies
+# Dependencies
 
 * None, just C++ :)
 
-### Installing
+# Installing
 
 * Download files
 * Put them into a C++ program then write an interpreter
 
-### Writing an interpreter
+# Writing an interpreter
 
 * Outside of your line-by-line interpretation, define a heap variable:
 ```
@@ -28,12 +28,12 @@ Instruction_Set* in_St = Parser::new_inst_set(line.c_str());
 ```
 VM::execute(in_St, heap);
 ```
-### How the interpreter works (Understanding the C++)
+# How the interpreter works (Understanding the C++)
 
-# Parser (con_parse.cpp)
+## Parser (con_parse.cpp)
 *   Each line is parsed through the parser, the very first step. The parser tokenizes the line
-* based on predetermined tokens which are later parsed again to determine the instruction
-* associated with the parsed value.
+ based on predetermined tokens which are later parsed again to determine the instruction
+ associated with the parsed value.
 *   Each tokenized value is pushed back into a vector which is given to the instruction set creator.
 
 ```
@@ -42,9 +42,9 @@ print("Hello");
 ^^ resulting vector: {"print", "(", "\"", "Hello", "\"", ")", ";"};
 ```
 
-# Instruction Set Creator (con_parse.cpp)
+## Instruction Set Creator (con_parse.cpp)
 *   Each vector value is compared to predefined calls (OP_CALL being the ONLY resulting OP_CODE from a CFunction call),
-* then keywords (OP_IF, OP_JMP, OP_JMPLOC, etc), then single tokens (OP_OPENPARA, OP_ADD, OP_MOD).
+   then keywords (OP_IF, OP_JMP, OP_JMPLOC, etc), then single tokens (OP_OPENPARA, OP_ADD, OP_MOD).
 *  An instruction set has a vector of a pair <INST(ruction), std::string>. For example:
 
 ```
@@ -55,7 +55,7 @@ data: "print"
 Instruction_Set.push_back(std::make_pair(OP_CALL, "print"));
 ```
 
-# VM Interpreter (con_vm.cpp)
+## VM Interpreter (con_vm.cpp)
 * The VM reads each instruction in reverse interpretation, aka the vector is flipped around. For example:
 ```
 print("Hello World!");
@@ -64,11 +64,11 @@ The final OP_CODE in this line would be OP_ENDLINE (from ";").
 However, the VM reads OP_ENDLINE as the first instruction in the set.
 ```
 *   Why? Well, if we get an OP_ADD call, we can pop the stack for the most recent value. However, that's only
-* half of the values we need. We have a value in the future that we simply do not have access to.
+ half of the values we need. We have a value in the future that we simply do not have access to.
 *   The solution to this dilemma is to index our instruction set back one each loop, defining
-*   `INST old_instr = Instructions[i-1]`. Then, inside of our OP_INT call (the future value),
-*   we can check if `if(old_instr == OP_ADD)`. If it does? Then we have our current value,
-*   say `x`, and we can now pop the stack for the other value, say `y`. Full code:
+   `INST old_instr = Instructions[i-1]`. Then, inside of our OP_INT call (the future value),
+   we can check if `if(old_instr == OP_ADD)`. If it does? Then we have our current value,
+   say `x`, and we can now pop the stack for the other value, say `y`. Full code:
 
 ```c
 Interpreting: 5 + 9;
@@ -102,24 +102,25 @@ if(old_instr == OP_ADD)
 
 ```
 *   Ok, lets break that down even more. In step 1, after interpreting the endline opcode (step 0), we are
-* now working with the OP_INT opcode. The data attached to this opcode is 9. We push this data to the stack
-* and continue. When we get to step 3, we once again have another OP_INT opcode. This time, when we check
-* if the old_instruction is OP_ADD, it is. **So, we know that the previous data was a +, and we now need to add**
-* **the current data to the top of the stack.** Arith, aka arithmetic, is called, passing our data and the popped stack
-* data, alongside the old_instr to tell the arithmetic function what operation to perform.
+ now working with the OP_INT opcode. The data attached to this opcode is 9. We push this data to the stack
+ and continue. When we get to step 3, we once again have another OP_INT opcode. This time, when we check
+ if the old_instruction is OP_ADD, it is.
+* **So, we know that the previous data was a +, and we now need to add**
+ **the current data to the top of the stack.** Arith, aka arithmetic, is called, passing our data and the popped stack
+ data, alongside the old_instr to tell the arithmetic function what operation to perform.
   
 *   **Variables in the VM** are stored in the heap in a map where they can be easily indexed when needed. They are stored
-* without types, which was a bad decision, and are instead decided based on whether they are an integer or string.
+  without types, which was a bad decision, and are instead decided based on whether they are an integer or string.
   
 *   **Functions** when first defined are not interpreted by the VM. When OP_JMPLOC is called, it enables the "function writer",
-* which causes instructions sent to instead be pushed back into a vector where they are stored until the function is called.
+ which causes instructions sent to instead be pushed back into a vector where they are stored until the function is called.
 * When the function is called, we define two new variables.
 ```
 arg1 = stack.pop();
 arg2 = stack.pop_index(1); //gets the second to top value in the stack
 ```
 * Once these variables are defined, we loop through the stored instructions for the function and add these instructions
-* to the current set of instructions we are parsing. Imagine this function:
+ to the current set of instructions we are parsing. Imagine this function:
 
 ```
 vector<INST> function_foo_instructions = {OP_INT, OP_MUL, OP_INT};
@@ -137,21 +138,21 @@ call_function(current_instructions);
 ```
 
 * It's more complex in the VM, but thats essentially how it works. The instructions (and their data) are appended
-* to our current instruction set. 
+ to our current instruction set. 
 
-### Syntax / Writing Constelli
+# Syntax / Writing Constelli
 
-# Print
+## Print
 *To simply print out a value, use print
 ```
 print("Hello World!");
 ```
-# Ending Lines
+## Ending Lines
 * Each line must end in ";"
 
-# Types & Variables
+## Types & Variables
 *   While you're scripting this language, you shouldn't really need to worry about types
-* as all integers are automatically viewed as doubles (we don't need memory management).
+ as all integers are automatically viewed as doubles (we don't need memory management).
 *   The VM also interprets all values as strings until necessary operations are required
 * (OP_ADD will compare if both strings are numbers or real strings).
   
@@ -176,17 +177,17 @@ print('og var: ' + [foo]); -> prints "og var: 5"
 print('new var: ' + [foo]); -> prints "new var: Helo"
 ```
 
-# Mathematical Operators & Operations Order
+## Mathematical Operators & Operations Order
 * As the interpreter runs backwards/"reverse interpretation" to support the stack not having
-* to index future values and commit multiple instructions in advance, the order of operations
-* is messed up and goes in reverse of how you type.
+ to index future values and commit multiple instructions in advance, the order of operations
+ is messed up and goes in reverse of how you type.
 ```
 print(5 * 4 + 5 - 2);
 
 ^^^ In PEMDAS, this results in [(5-2) + 4] * 5.
 ```
 
-# Defining Strings
+## Defining Strings
 * Strings can be defined with both " and '
 
 # Defining Functions
@@ -196,7 +197,7 @@ entry 'new_function';
 print('Function called.');
 leave; 
 ```
-# Calling Functions
+## Calling Functions
 * The function call syntax is a bit confusing but becomes understandable.
 ```
 goto 'new_function';
@@ -212,14 +213,14 @@ leave;
 goto 'print_arg' 'Hello World!';
 ```
 
-# String Concatenation
+## String Concatenation
 * Two strings can be added by just using the operator +.
 ```
 print('Hello' + ' ' + 'World!');
 ```
-# Comparative Operators
+## Comparative Operators
 * <,>,== work the same as all languages. They return 0 or 1, and can be parsed
-* to "true" or "false" by using bool_parse(), a CFunction. This is discussed next.
+ to "true" or "false" by using bool_parse(), a CFunction. This is discussed next.
 
 ```
 var totally_false = 5 < 7;
@@ -227,14 +228,14 @@ print("number value: " + [totally_false]); -> prints: "number value: 1" as 5 is 
 print("parsed value: " + bool_parse([totally_false])) -> prints: "parsed value: true"
 ```
 
-# CFunctions
+## CFunctions
 * Built in functions coded in C can be accessed and have powerful properties.
 * The main example of this is of course `print`, but others are usually added
-* everytime I push an update. If you want to see a full list of all CFunctions,
-* you can open `Parser/con_parse.cpp` and look for the vector `reserved_calls`
-* or you can open `CFunctions/con_cfunction.cpp` and look around there :)
+ everytime I push an update. If you want to see a full list of all CFunctions,
+ you can open `Parser/con_parse.cpp` and look for the vector `reserved_calls`
+ or you can open `CFunctions/con_cfunction.cpp` and look around there :)
 
-```
+```c
 Original CFunctions:
 strlen("Hello"); //returns 5
 pow(2,3); //returns 2^3, or 8
