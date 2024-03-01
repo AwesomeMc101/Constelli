@@ -1,5 +1,31 @@
 #include "con_vm.hpp"
 
+
+std::string VM::decode_instruction(INST instruction)
+{
+	switch (instruction)
+	{
+	case OP_ADD: return "ADD"; break;
+	case OP_SUB: return "SUB";
+	case OP_MUL: return "MUL";
+	case OP_DIV: return "DIV";
+	case OP_MOD: return "MOD";
+	case OP_STRING: return "STRING";
+	case OP_NEWMEM: return "NEWMEM";
+	case OP_CALL: return "CALL";
+	case OP_UNKNOWN: return "UNKNOWN";
+	case OP_ENDLINE: return "ENDLINE";
+	case OP_INT: return "INT";
+	case OP_EDITMEM: return "EDITMEM";
+	case OP_EQU: return "EQU";
+	case OP_JMP: return "JMP";
+	case OP_MEMREF: return "MEMREF";
+	case OP_GETA: return "GETA";
+	case OP_LETA: return "LETA";
+	}
+	return "OTHER";
+}
+
 void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 {
 	static bool is_jumploc = false;
@@ -20,7 +46,7 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 
 		//decided to do if..else instead of switch as switches seem just too
 		//wild for this LOL
-
+		std::cout << "Decoded Instruction: " << decode_instruction(instr) << " & Data: " << data << "\n";
 		
 		if (instr == OP_JUMPLOCEND)
 		{
@@ -28,7 +54,7 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 		}
 		else if (is_jumploc)
 		{
-			//std::cout << "ISJUMPLOC";
+			//std::cout << "Writing jmp.\n";
 			heap->push_jump(jumploc_iden, in_St);
 			if (in_St->instructions.size() >= i)
 			{
@@ -45,19 +71,23 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 			//call cfunction w/ stack
 			stack->push(CFunction::do_cfunction(data, stack->pop(), stack->pop_index(1))); //data is like "print"
 		}
-		else if (instr == OP_JMP)
+		else if (instr == OP_JMP) //function call (defined function, jump to call)
 		{
 			std::string iden = stack->pop();
 			std::vector<Instruction_Set*> in_St_T = heap->return_jump_instructions(iden);
 
 			stack->pop_back(); //get rid of identifier from stack
 
+			heap->push_var("arg1", stack->pop());
+			heap->push_var("arg2", stack->pop_index(1));
+
 			for (int i = 0; i < in_St_T.size(); i++)
 			{
-				std::reverse(in_St_T[i]->instructions.begin(), in_St_T[i]->instructions.end());
+				//std::reverse(in_St_T[i]->instructions.begin(), in_St_T[i]->instructions.end());
 				for (int x = 0; x < in_St_T[i]->instructions.size(); x++)
 				{
 					in_St->instructions.push_back(in_St_T[i]->instructions[x]);
+					
 				}
 				//in_St->instructions
 			}
@@ -106,6 +136,12 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 			if (do_math) {
 				stack->push(Arith::arith(stack->pop(), stack->pop_index(1), old_instr)); //push arith val to stack
 			}
+			else if ((old_instr == OP_DEQU) || /* Compare strings. */
+				(old_instr == OP_LETA) ||
+				(old_instr == OP_GETA))
+			{
+				stack->push(Compare::comp_integers(stack->pop(), stack->pop_index(1), old_instr));
+			}
 		}
 
 		else if ((instr == OP_ADD) || (instr == OP_SUB) || (instr == OP_MUL) || (instr == OP_DIV) || (instr == OP_MOD))
@@ -129,9 +165,27 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 			{
 				stack->push(Concat::concat_str(stack->pop(), stack->pop_index(1))); 
 			}
+
+			else if ((old_instr == OP_DEQU) || /* Compare strings. */
+				(old_instr == OP_LETA)		||
+				(old_instr == OP_GETA)		)
+			{
+				stack->push(Compare::comp_strings(stack->pop(), stack->pop_index(1), old_instr));
+			}
 		}
-		else if (instr == OP_MEMREF)
+		else if (instr == OP_EQU)
 		{
+			if (old_instr == OP_EQU)
+			{
+				in_St->instructions[i].first = OP_DEQU; //push double equal value
+			}
+		}
+		else if (instr == OP_MEMREF) //VAR CALLED print([varname]); would trigger this OPCODE
+		{
+			if (old_instr == OP_EQU)
+			{
+				heap->push_var(data, stack->pop());
+			}
 			stack->push(heap->index_var(data));
 
 		//	std::cout << "memref: " << heap->index_var(data) << "\n";
@@ -156,6 +210,22 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 
 					stack->push(Arith::arith(stack->pop(), stack->pop_index(1), old_instr));
 				}
+			}
+			else if ((old_instr == OP_DEQU) || /* Compare strings. */
+				(old_instr == OP_LETA) ||
+				(old_instr == OP_GETA))
+			{
+				if (!Arith::is_num(stack->pop()))
+				{
+
+					stack->push(Compare::comp_strings(stack->pop(), stack->pop_index(1), old_instr));
+				}
+				else
+				{
+
+					stack->push(Compare::comp_integers(stack->pop(), stack->pop_index(1), old_instr));
+				}
+				//stack->push(Compare::comp_integers(stack->pop(), stack->pop_index(1), old_instr));
 			}
 		}
 		else if (instr == OP_UNKNOWN) //this is just a backup for a lot of the time now... most "fixes" in here are now fixed in parser 
