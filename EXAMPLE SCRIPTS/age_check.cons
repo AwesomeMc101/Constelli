@@ -1,0 +1,19 @@
+entry 'check_age';
+
+if [arg1] > 21;
+return "Yes";
+endif;
+
+if [arg1] < 21;
+return "No";
+endif;
+
+if [arg1] == 21;
+return "Yes... barely";
+endif;
+
+leave;
+
+print("How old are you?");
+var age = get_input();
+print("Can you go in? " + goto 'check_age' [age] 0);
