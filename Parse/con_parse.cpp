@@ -2,10 +2,10 @@
 
 
 
-std::vector<std::string> reserved_calls{"print","heap_push","strlen","pow"};
+std::vector<std::string> reserved_calls{"print","heap_push","strlen","pow","bool_parse"};
 std::vector<char> reserved_tokens{ '(',')','+','-','"','-','/','%',';','\'', '=', '>','<','*','[',']'};
-std::vector<char> splitter_tokens{ ',',' '};// these tokens are designed literally just to split things up, like function args. 
-std::vector<std::string> reserved_keywords{ "if", "var","goto","jump","entry","leave"};
+std::vector<char> splitter_tokens{ ',',' ','	'};// these tokens are designed literally just to split things up, like function args. 
+std::vector<std::string> reserved_keywords{ "if","endif", "var","goto","jump","entry","leave","return"};
 
 
 std::vector<std::string> Parser::parse_line(const char* line)
@@ -71,11 +71,13 @@ std::vector<std::string> Parser::parse_line(const char* line)
 INST Parser::keyword_decode(std::string key)
 {
 	if (key == "if") { return OP_IF; };
+	if (key == "endif") { return OP_ENDIF; }
 	if (key == "var") { return OP_NEWMEM; }
 	if (key == "jump") { return OP_JMP; }
 	if (key == "goto") { return OP_JMP; }
 	if (key == "entry") { return OP_JMPLOC; }
 	if (key == "leave") { return OP_JUMPLOCEND; }
+	if (key == "return") { return OP_PUSHSTACK; }
 }
 
 INST Parser::token_decode(char token)
