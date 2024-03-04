@@ -241,6 +241,7 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 		{
 			if (old_instr == OP_EQU)
 			{
+				std::cout << "PUSH DEQU\n\n";
 				in_St->instructions[i].first = OP_DEQU; //push double equal value
 			}
 		}
