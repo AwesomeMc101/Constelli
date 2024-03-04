@@ -2,7 +2,7 @@
 
 
 
-std::vector<std::string> reserved_calls{"print","heap_push","strlen","pow","bool_parse"};
+std::vector<std::string> reserved_calls{"print","heap_push","strlen","pow","bool_parse", "get_input"};
 std::vector<char> reserved_tokens{ '(',')','+','-','"','-','/','%',';','\'', '=', '>','<','*','[',']'};
 std::vector<char> splitter_tokens{ ',',' ','	'};// these tokens are designed literally just to split things up, like function args. 
 std::vector<std::string> reserved_keywords{ "if","endif", "var","goto","jump","entry","leave","return"};
