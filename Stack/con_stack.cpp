@@ -58,14 +58,48 @@ void Stack::Stack::push_jump(std::string iden, Instruction_Set* in_St)
 	Stack::jump_stack[iden].push_back(in_St);
 }
 
+void Stack::Stack::set_callstack_return(std::string val)
+{
+	Stack::callstack_return_value = val;
+}
+std::string Stack::Stack::get_callstack_return()
+{
+	return Stack::callstack_return_value;
+}
+
 std::vector<Instruction_Set*> Stack::Stack::return_jump_instructions(std::string iden)
 {
 	return Stack::jump_stack[iden];
 }
 
-void Stack::Stack::dbg_printvars()
+void Stack::Stack::push_if(bool ifval)
 {
+	Stack::if_heap.push_back(ifval);
+}
+bool Stack::Stack::pop_if()
+{
+	bool val = Stack::if_heap[Stack::if_heap.size() - 1];
+	//Stack::stack.erase(Stack::stack.begin() + (Stack::stack.size() - 1 - idx));
+	return val; //5 - 1 - 5
+}
+void Stack::Stack::popback_if()
+{
+	if (Stack::ifheap_size()) {
+		Stack::if_heap.pop_back();
+	}
+}
+size_t Stack::Stack::ifheap_size()
+{
+	return Stack::if_heap.size();
+}
 
+
+void Stack::Stack::dbg_printvars()
+{/*
+	for (auto a : Stack::var_stack)
+	{
+		std::cout << "Var " << a.first << " at " << a.second() << "\n";
+	}*/
 	for (std::map<std::string, std::string>::const_iterator it = Stack::var_stack.begin();
 		it != Stack::var_stack.end(); ++it)
 	{
