@@ -22,6 +22,8 @@ std::string VM::decode_instruction(INST instruction)
 	case OP_MEMREF: return "MEMREF";
 	case OP_GETA: return "GETA";
 	case OP_LETA: return "LETA";
+	case OP_ENDIF: return "ENDIF";
+	case OP_IF: return "IF";
 	}
 	return "OTHER";
 }
@@ -29,8 +31,14 @@ std::string VM::decode_instruction(INST instruction)
 void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 {
 	static bool is_jumploc = false;
-
 	static std::string jumploc_iden = "";
+
+	//static std::vector<bool> if_heap;
+
+	/*if (in_St->instructions[0].first == NOTECALL)
+	{
+		return;
+	}*/
 
 	std::reverse(in_St->instructions.begin(), in_St->instructions.end()); //reverse interpretation
 
@@ -42,55 +50,111 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 		INST old_instr = OP_NOINSTRUCTION;
 		if (i > 0) { old_instr = in_St->instructions[i - 1].first; } //old data is popped to the stack...
 		std::string data = in_St->instructions[i].second;
-
+		bool run = true;
 
 		//decided to do if..else instead of switch as switches seem just too
 		//wild for this LOL
 		std::cout << "Decoded Instruction: " << decode_instruction(instr) << " & Data: " << data << "\n";
 		
+		/* IF Statements */
 		if (instr == OP_JUMPLOCEND)
 		{
 			is_jumploc = false;
 		}
 		else if (is_jumploc)
 		{
-			//std::cout << "Writing jmp.\n";
+			std::cout << "Writing jmp.\n";
 			heap->push_jump(jumploc_iden, in_St);
-			if (in_St->instructions.size() >= i)
+			/*if (in_St->instructions.size() >= i)
 			{
 				if (in_St->instructions[i + 1].first == OP_JUMPLOCEND)
 				{
 					is_jumploc = false;
 				}
+			}*/
+			if (instr == OP_JUMPLOCEND)
+			{
+				is_jumploc = false;
 			}
-			return;
+			run = false;
 		}
+
+		if (heap->ifheap_size()) {
+			//printf("ending if");
+			if (heap->pop_if() == false)
+			{
+				//do not run
+				std::cout << "\nHeap pop is false\n";
+				run = false;
+				for (int scan = 0; scan < in_St->instructions.size(); scan++) {
+				//	std::cout << "False check instruction: " << decode_instruction(in_St->instructions[scan].first) << "\n";
+					//if (in_St->instructions[scan].first == OP_ENDIF)
+					if(instr == OP_ENDIF)
+					{
+						
+					//	printf("ENDIF");
+						//if_heap.pop_back();
+						//if_heap.erase(if_heap.begin() + (if_heap.size()-1));
+						heap->popback_if();
+						continue;
+						//return;
+					}
+				}
+			
+				//return;
+			}
+		}
+		if (!run) { continue; }
 
 		if (instr == OP_CALL)
 		{
 			//call cfunction w/ stack
 			stack->push(CFunction::do_cfunction(data, stack->pop(), stack->pop_index(1))); //data is like "print"
+			std::cout << "\nopcall stacktop: " << stack->pop() << "\n";
+		}
+		else if (instr == OP_PUSHCALLSTACK)
+		{
+			std::cout << "PUSHCALLSTACK\n";
+			stack->push(stack->get_callstack_return());
 		}
 		else if (instr == OP_JMP) //function call (defined function, jump to call)
 		{
 			std::string iden = stack->pop();
 			std::vector<Instruction_Set*> in_St_T = heap->return_jump_instructions(iden);
 
+			std::cout << "\nJumping to function: " << iden << "\n";
+
 			stack->pop_back(); //get rid of identifier from stack
 
 			heap->push_var("arg1", stack->pop());
 			heap->push_var("arg2", stack->pop_index(1));
 
-			for (int i = 0; i < in_St_T.size(); i++)
+
+			/* push the return value to the stack at the end */
+			Instruction_Set* callstack = new Instruction_Set;
+			callstack->instructions.push_back(std::make_pair(OP_PUSHCALLSTACK, ""));
+			in_St_T.push_back(callstack);
+
+			std::reverse(in_St_T.begin(), in_St_T.end());
+		//	in_St_T.push_back(std::make_pair(OP_PUSHCALLSTACK, ""));
+
+
+			for (int z = 0; z < in_St_T.size(); z++)
 			{
-				//std::reverse(in_St_T[i]->instructions.begin(), in_St_T[i]->instructions.end());
-				for (int x = 0; x < in_St_T[i]->instructions.size(); x++)
+				std::reverse(in_St_T[z]->instructions.begin(), in_St_T[z]->instructions.end());
+				for (int x = 0; x < in_St_T[z]->instructions.size(); x++)
 				{
-					in_St->instructions.push_back(in_St_T[i]->instructions[x]);
-					
+					//in_St->instructions.push_back(in_St_T[i]->instructions[x]);
+					in_St->instructions.insert(in_St->instructions.begin() + i+1, in_St_T[z]->instructions[x]);
 				}
 				//in_St->instructions
 			}
+		//	in_St->instructions.insert(in_St->instructions.begin() + i + 1, std::make_pair(OP_PUSHCALLSTACK, ""));
+		}
+		else if (instr == OP_PUSHSTACK) //"return x", get_callstack_return() is called at end of JMP and pushes return value to stack
+		{
+			//stack->push(stack->pop()); //doesnt make much sense now... :D
+			stack->set_callstack_return(stack->pop()); //gets called o
 		}
 		else if (instr == OP_JMPLOC)
 		{
@@ -226,6 +290,16 @@ void VM::execute(Instruction_Set* in_St, Stack::Stack* heap)
 					stack->push(Compare::comp_integers(stack->pop(), stack->pop_index(1), old_instr));
 				}
 				//stack->push(Compare::comp_integers(stack->pop(), stack->pop_index(1), old_instr));
+			}
+		}
+		else if (instr == OP_IF)
+		{
+		//std::cout << "OP_IF STACKPOP: " << stack->pop() << "\n";
+			if (stack->pop().find("0") != std::string::npos)
+			{
+				//if_heap.push_back(false);
+				printf("Pushed a false value.");
+				heap->push_if(false);
 			}
 		}
 		else if (instr == OP_UNKNOWN) //this is just a backup for a lot of the time now... most "fixes" in here are now fixed in parser 
