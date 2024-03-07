@@ -219,13 +219,20 @@ goto 'print_arg' 'Hello World!';
 print('Hello' + ' ' + 'World!');
 ```
 ## Comparative Operators
-* <,>,== work the same as all languages. They return 0 or 1, and can be parsed
+* <,>,==,!= work the same as all languages. They return 0 or 1, and can be parsed
  to "true" or "false" by using bool_parse(), a CFunction. This is discussed next.
 
 ```
 var totally_false = 5 < 7;
 print("number value: " + [totally_false]); -> prints: "number value: 1" as 5 is less than 7
 print("parsed value: " + bool_parse([totally_false])) -> prints: "parsed value: true"
+```
+## Using Operators in IF Statements
+* Very simple. This is an example of the IF statement syntax.
+```
+if 1 != 2;
+print("Yep, they are different."); <-- This will print as 1 does not equal 2.
+endif;
 ```
 
 ## CFunctions
